@@ -7,7 +7,7 @@
 // which means this source code is licensed under Attribution-NonCommercial-ShareAlike
 
 #include <Wire.h>
-#define RTC_DIGITAL_POWER_PIN 9
+#define RTC_DIGITAL_POWER_PIN 9 // we turn off the rtc board between measurements to save battery
 const int DS1307 = 0x68; // Address of DS1307 from data sheets
 const char* days[] =
 {
@@ -28,17 +28,17 @@ byte year = 14; // fixed, we do not expect to run more than one year from batter
 #define HALL_SENSOR_ANALOG_READ_PIN 0 
 #define DOOR_OPEN 0
 #define DOOR_CLOSED 1
-#define HALL_SENSOR_DIGITAL_POWER_PIN 8
+#define HALL_SENSOR_DIGITAL_POWER_PIN 8 // we turn off the hall sensor between measurements to save battery
 
 boolean doorStatusHasChanged = false;
 int previousDoorStatus = DOOR_CLOSED;
 int currentDoorStatus = DOOR_CLOSED;
 
 void setup() {
-  pinMode(HALL_SENSOR_DIGITAL_POWER_PIN, OUTPUT); // we turn off the hall sensor between measurements to save battery
+  pinMode(HALL_SENSOR_DIGITAL_POWER_PIN, OUTPUT); 
   digitalWrite(HALL_SENSOR_DIGITAL_POWER_PIN, LOW);
 
-  pinMode(RTC_DIGITAL_POWER_PIN, OUTPUT); // we turn off the rtc board between measurements to save battery
+  pinMode(RTC_DIGITAL_POWER_PIN, OUTPUT); 
   digitalWrite(RTC_DIGITAL_POWER_PIN, LOW); 
 
   Wire.begin();
