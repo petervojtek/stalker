@@ -18,6 +18,7 @@ Features
 * Battery powered: will run for 3 months from 600mA lion battery.
 * Cheap (20 USD): so that you can attach it to public-space door
 * Hall sensor (magnet) based door status detection 
+* Log entries are persistently stored to Arduino's EEPROM
 
 Wiring & Code
 -------------
