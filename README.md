@@ -46,6 +46,7 @@ The [KY-003 Hall sensor](http://www.ebay.com/itm/KY-003-Hall-Magnetic-Sensor-Mod
 Battery Life
 ------------
 
+* If you want to achieve good battery life (months), you cannot use regular arduino which is too greedy in terms of current consumption. Instead [use bare atmega328 chip with arduino bootloader](https://github.com/petervojtek/diy/wiki/Arduino-with-Very-Low-Power-Consumption).
 * Current draw is `0.20mA` when Stalker is on low-power sleep. 
 * Every 2 seconds there is higher power demand as the hall sensor wakes up for 15 milliseconds and measures door status.
  * Only when hall sensor detects door status change, real time clock circuit is powered on and current time is fetched.
