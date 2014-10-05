@@ -57,7 +57,7 @@ Bill of Material
 Prices below include shipping to EU.
 
 * [Atmega328 bare Arduino Uno Kit](http://www.ebay.de/itm/ATMEGA328-PU-ARDUINO-UNO-KIT-mit-5V-Spannungsstabilisator-MCU-A449-/261357577770?ssPageName=ADME:L:OC:US:3160): 7.3 Euro
-** [mini breadboard](http://www.ebay.com/itm/Mini-Nickel-Plating-Breadboard-170-Tie-points-for-Arduino-Shield-Black-TN2F-/281265100067): 0.7 Euro
+ * [mini breadboard](http://www.ebay.com/itm/Mini-Nickel-Plating-Breadboard-170-Tie-points-for-Arduino-Shield-Black-TN2F-/281265100067): 0.7 Euro
  * few wires 
 * [KY-003 Hall sensor](http://www.ebay.com/itm/KY-003-Hall-Magnetic-Sensor-Module-for-Arduino-AVR-PIC-Good-/370886143225): 1.74 Euro
 * [I2C Real Time Clock](http://www.ebay.com/itm/Arduino-I2C-RTC-DS1307-AT24C32-Real-Time-Clock-Module-For-AVR-ARM-PIC-SMD-/170910326110): 0.88 Euro
