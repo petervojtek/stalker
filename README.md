@@ -15,7 +15,7 @@ Arduino&ndash;based door stalking device.
 Features
 --------
 
-* Battery powered: will run for 3 months from 600mA lion battery.
+* Battery powered: will run for 3 months from `600mAh` lion battery.
 * Cheap (20 USD): so that you can attach it to public-space door
 * Hall sensor (magnet) based door status detection 
 * Log entries are persistently stored to Arduino's EEPROM
@@ -46,11 +46,11 @@ The [KY-003 Hall sensor](http://www.ebay.com/itm/KY-003-Hall-Magnetic-Sensor-Mod
 Battery Life
 ------------
 
-* Current draw is 0.20mA when Stalker is on low-power sleep. 
+* Current draw is `0.20mA` when Stalker is on low-power sleep. 
 * Every 2 seconds there is higher power demand as the hall sensor wakes up for 15 milliseconds and measures door status.
  * Only when hall sensor detects door status change, real time clock circuit is powered on and current time is fetched.
-* I assume the average current draw is not more than 0.25mA.
-* 600mAh battery / 0.25 mA = 2400 hours = 100 days
+* I assume the average current draw is not more than `0.25mA` (unfortunately it is not possible to measure the current draw peaks properly with simple multimeter).
+* `600mAh battery / 0.25 mA = 2400 hours = 100 days`
 
 Bill of Material
 ----------------
