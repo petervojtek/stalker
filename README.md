@@ -77,5 +77,7 @@ TODOs
 * The internal arduino's EEPROM is 1kB, which corresponds to 200 log entries - which is not enough for a longer period of stalking. Thankfully, The [RTC board DS1307 contains 32kB EEPROM](http://www.instructables.com/id/Setting-the-DS1307-Real-Time-Clock-using-the-Seria/), which you can use instead.
  * I do not recommend you to use SD card for logging - it will be more expensive (you will need an SD card and board for writing SD cards) and personally I was unable to achieve low power consumption with the SD card board. 
 
+If you would like to contribute to Stalker's source code, you are welcome to share your enhancements via pull request.
+
 
 
