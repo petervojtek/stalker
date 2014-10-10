@@ -1,7 +1,9 @@
 #include <EEPROM.h>
 #include <lowpower.h>
 
-#define WITH_SERIAL_OUTPUT false // set to true to debug and see history of door open/close logs
+// set to true to debug and see history of door open/close logs
+// set to false in production mode
+#define WITH_SERIAL_OUTPUT true 
 
 // RTC parts of code are based on http://www.instructables.com/id/Setting-the-DS1307-Real-Time-Clock-using-the-Seria/
 // which means this source code is licensed under Attribution-NonCommercial-ShareAlike
@@ -9,12 +11,6 @@
 #include <Wire.h>
 #define RTC_DIGITAL_POWER_PIN 9 // we turn off the rtc board between measurements to save battery
 const int DS1307 = 0x68; // Address of DS1307 from data sheets
-const char* days[] =
-{
-  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-const char* months[] =
-{
-  "January", "February", "March", "April", "May", "June", "July", "August","September", "October", "November", "December"};
 
 byte second = 0;
 byte minute = 0;
@@ -136,13 +132,12 @@ void setTime() {
 void printTime() {
   if(WITH_SERIAL_OUTPUT){
     char buffer[3];
-    Serial.print(days[weekday-1]);
-    Serial.print(" ");
-    Serial.print(months[month-1]);
-    Serial.print(" ");
-    Serial.print(monthday);
     Serial.print(", 20");
     Serial.print(year);
+    Serial.print("-");
+    Serial.print(month);
+    Serial.print("-");
+    Serial.print(monthday);
     Serial.print(" ");
     Serial.print(hour);
     Serial.print(":");
@@ -150,7 +145,6 @@ void printTime() {
     Serial.println(buffer);
   }
 }
-
 
 void readTime() {
   digitalWrite(RTC_DIGITAL_POWER_PIN, HIGH);
