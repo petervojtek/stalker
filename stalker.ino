@@ -3,14 +3,15 @@
 
 // set to true to debug and see history of door open/close logs
 // set to false in production mode
-#define WITH_SERIAL_OUTPUT true 
+#define WITH_SERIAL_OUTPUT false 
 
 // RTC parts of code are based on http://www.instructables.com/id/Setting-the-DS1307-Real-Time-Clock-using-the-Seria/
 // which means this source code is licensed under Attribution-NonCommercial-ShareAlike
 
 #include <Wire.h>
 #define RTC_DIGITAL_POWER_PIN 9 // we turn off the rtc board between measurements to save battery
-const int DS1307 = 0x68; // Address of DS1307 from data sheets
+const int DS1307 = 0x68; // i2c Address of DS1307 from data sheets
+const int EEPROM_AT24C32 = 0x50; // i2c address of 32kB eeprom, located on the same rtc board
 
 byte second = 0;
 byte minute = 0;
@@ -40,7 +41,8 @@ void setup() {
   Wire.begin();
   if(WITH_SERIAL_OUTPUT){
     Serial.begin(9600);
-    delay(2000);
+    delay(1000);
+    Serial.println("printing history");
     printHistory();
     delay(10000);
     Serial.println("starting");
@@ -54,10 +56,14 @@ void loop() {
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF); // check door status every 2 seconds
   doorStatusHasChanged = updateDoorStatus();
   if(doorStatusHasChanged){
+    powerOnRTC();
+    
     readTime();
     printTime();
     printCurrentDoorStatus();
     storeDoorStatusToEeprom();
+    
+    powerOffRTC();
   }
 }
 
@@ -108,10 +114,10 @@ void setTime() {
 
   year = 14; // 00-99
   month = 10; // 1-12
-  monthday = 4; // 1-31
-  weekday = 7; // 1 Sun | 2 Mon | 3 Tues | 4 Weds | 5 Thu | 6 Fri | 7 Sat
-  hour = 10; // 0-23
-  minute = 33; // 0-59
+  monthday = 27; // 1-31
+  weekday = 2; // 1 Sun | 2 Mon | 3 Tues | 4 Weds | 5 Thu | 6 Fri | 7 Sat
+  hour = 20; // 0-23
+  minute = 22; // 0-59
   second = 0;
 
   Wire.beginTransmission(DS1307);
@@ -132,7 +138,7 @@ void setTime() {
 void printTime() {
   if(WITH_SERIAL_OUTPUT){
     char buffer[3];
-    Serial.print(", 20");
+    Serial.print("20");
     Serial.print(year);
     Serial.print("-");
     Serial.print(month);
@@ -147,9 +153,6 @@ void printTime() {
 }
 
 void readTime() {
-  digitalWrite(RTC_DIGITAL_POWER_PIN, HIGH);
-  LowPower.powerDown(SLEEP_15Ms, ADC_OFF, BOD_OFF);  
-
   Wire.beginTransmission(DS1307);
   Wire.write(byte(0));
   Wire.endTransmission();
@@ -161,50 +164,82 @@ void readTime() {
   monthday = bcdToDec(Wire.read());
   month = bcdToDec(Wire.read());
   year = bcdToDec(Wire.read());
-
-  digitalWrite(RTC_DIGITAL_POWER_PIN, LOW);
+  delay(10);
 }
 
 int recordCounter = 0;
 int eepromPointer;
 
-// we use internal atmega328 1kb eeprom
-// the approach below is far from storage-efficient - we use 5 bytes to store timestamp+door status, so that we can store 200 door statuses.
-
-// the same can be achieved by using only three bytes (month: 4bits, day: 5bits, hour: 5 bits, minute: 6bits, door status:1bit)
-// you may find bitRead and writeBit arduino functions useful for the purpose
-
+// one door record occupies 5 bytes. this can be reduced to 3 bytes if needed, but since we have 32kb eeprom, we have well enough space
 void storeDoorStatusToEeprom(){
   eepromPointer = 1 + (recordCounter * 5);
 
-
-  EEPROM.write(eepromPointer, month); 
-  EEPROM.write(eepromPointer + 1, monthday);
-  EEPROM.write(eepromPointer + 2, hour);
-  EEPROM.write(eepromPointer + 3, minute);
-  EEPROM.write(eepromPointer + 4, currentDoorStatus);
+  writeEEPROM(eepromPointer, month); 
+  writeEEPROM(eepromPointer + 1, monthday);
+  writeEEPROM(eepromPointer + 2, hour);
+  writeEEPROM(eepromPointer + 3, minute);
+  writeEEPROM(eepromPointer + 4, currentDoorStatus);
 
   recordCounter++;
-  EEPROM.write(0, recordCounter);
+  writeEEPROM(0, recordCounter);
+}
+
+void powerOnRTC(){
+    digitalWrite(RTC_DIGITAL_POWER_PIN, HIGH);
+    delay(10);
+}
+
+void powerOffRTC(){
+    delay(10);
+  digitalWrite(RTC_DIGITAL_POWER_PIN, LOW);
 }
 
 void printHistory(){
-  int historyRecordsCount = EEPROM.read(0);
+  powerOnRTC();
+    
+  int historyRecordsCount = readEEPROM(0);
+  Serial.println("history count:");
+  Serial.println(historyRecordsCount);
   for(int i = 0; i < historyRecordsCount; i++){
     eepromPointer = 1 + (i * 5);
-    month = EEPROM.read(eepromPointer);
-    monthday = EEPROM.read(eepromPointer + 1);
-    hour = EEPROM.read(eepromPointer + 2);
-    minute = EEPROM.read(eepromPointer + 3);
-    currentDoorStatus = EEPROM.read(eepromPointer + 4);
+    month = readEEPROM(eepromPointer);
+    monthday = readEEPROM(eepromPointer + 1);
+    hour = readEEPROM(eepromPointer + 2);
+    minute = readEEPROM(eepromPointer + 3);
+    currentDoorStatus = readEEPROM(eepromPointer + 4);
     printTime();
     printCurrentDoorStatus();
+    
   }
+  powerOffRTC();
 }
 
 
-
-
-
-
+// parts of code below are from http://forum.arduino.cc/index.php?topic=211409.0
+void writeEEPROM(unsigned int eeaddress, byte data ) 
+{
+  Wire.beginTransmission(EEPROM_AT24C32);
+  Wire.write((int)(eeaddress >> 8));   // MSB
+  Wire.write((int)(eeaddress & 0xFF)); // LSB
+  Wire.write(data);
+  Wire.endTransmission();
+ 
+  delay(5);
+}
+ 
+byte readEEPROM(unsigned int eeaddress ) 
+{
+  byte rdata = 0xFF;
+ 
+  Wire.beginTransmission(EEPROM_AT24C32);
+  Wire.write((int)(eeaddress >> 8));   // MSB
+  Wire.write((int)(eeaddress & 0xFF)); // LSB
+  Wire.endTransmission();
+ 
+  Wire.requestFrom(EEPROM_AT24C32,1);
+ 
+  if (Wire.available()) rdata = Wire.read();
+ 
+  return rdata;
+}
 

@@ -18,7 +18,7 @@ Features
 * Battery powered: will run for 3 months from `600mAh` lion battery.
 * Cheap (20 USD): so that you can attach it to public-space door
 * Hall sensor (magnet) based door status detection 
-* Log entries are persistently stored to Arduino's EEPROM
+* Log entries are persistently stored to 32kB EEPROM on RTC board (6400 entries)
 
 Wiring & Code
 -------------
@@ -31,7 +31,7 @@ Few notes on the [arduino source code](https://github.com/petervojtek/stalker/bl
 * Hall sensor is powered from arduino's digital pin (and not directly from battery) to cut its power consumption as much as possible. 
  * Similarly, real time clock is powered from arduino's digital pin for the same purpose.
 * [LowPower.h](https://github.com/rocketscream/Low-Power) sleep mode is used as much as possible.
-* Records are stored into Arduino's internal 1kB EEPROM.
+* Records are stored into A24C32 EEPROM (32kB), which is located on the RTC board.
 * Use `printHistory()` function to get door logs from EEPROM.
 
 Assembly
@@ -73,9 +73,9 @@ Sum: 15.6 Euro (~ 19.52 USD)
 TODOs
 -----
 
+* Add bluetooth module to wireless export door status records into a nearby cellphone.
 * The current data format used to log door record into EEPROM is not effective - one log entry occupies 5 bytes, can be optimized to 3 bytes.
-* The internal arduino's EEPROM is 1kB, which corresponds to 200 log entries. one should use [32kB external EEPROM](http://www.ebay.com/sch/i.html?_from=R40&_trksid=p2047675.m570.l1313.TR0.TRC0.H0.X24LC256&_nkw=24LC256&_sacat=0) for a longer period of stalking 
- * I do not recommend you to use SD card for logging - it will be more expensive (you will need an SD card and board for writing SD cards) and personally I was unable to achieve low power consumption with the SD card board. 
+* There is no EEPROM memory overflow safety.
 
 
 
