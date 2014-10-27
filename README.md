@@ -77,5 +77,7 @@ TODOs
 * The current data format used to log door record into EEPROM is not effective - one log entry occupies 5 bytes, can be optimized to 3 bytes.
 * There is no EEPROM memory overflow safety.
 
+If you would like to contribute to Stalker's source code, you are welcome to share your enhancements via pull request.
+
 
 
