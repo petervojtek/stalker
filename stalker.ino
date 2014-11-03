@@ -39,17 +39,24 @@ void setup() {
   digitalWrite(RTC_DIGITAL_POWER_PIN, LOW); 
 
   Wire.begin();
+  
+  // load number of currently stored door records so that we can continue seamlessly
+  loadRecordCounter(); 
+  
   if(WITH_SERIAL_OUTPUT){
     Serial.begin(9600);
     delay(1000);
     Serial.println("printing history");
     printHistory();
-    delay(10000);
+    delay(1000);
     Serial.println("starting");
   } 
   else {
-    delay(10000);
+    delay(1000);
   }
+  
+  // uncomment the next line to clear the eeprom
+  //resetRecordCounter();
 }
 
 void loop() {
@@ -167,8 +174,22 @@ void readTime() {
   delay(10);
 }
 
-int recordCounter = 0;
+
+int recordCounter;
 int eepromPointer;
+
+void loadRecordCounter(){
+  powerOnRTC();
+  recordCounter = readEEPROM(0);
+  powerOffRTC();
+}
+
+void resetRecordCounter(){
+  powerOnRTC();
+  writeEEPROM(0, 0);
+  recordCounter = 0;
+  powerOffRTC();
+}
 
 // one door record occupies 5 bytes. this can be reduced to 3 bytes if needed, but since we have 32kb eeprom, we have well enough space
 void storeDoorStatusToEeprom(){
@@ -185,22 +206,21 @@ void storeDoorStatusToEeprom(){
 }
 
 void powerOnRTC(){
-    digitalWrite(RTC_DIGITAL_POWER_PIN, HIGH);
-    delay(10);
+  digitalWrite(RTC_DIGITAL_POWER_PIN, HIGH);
+  delay(10);
 }
 
 void powerOffRTC(){
-    delay(10);
+  delay(10);
   digitalWrite(RTC_DIGITAL_POWER_PIN, LOW);
 }
 
 void printHistory(){
   powerOnRTC();
-    
-  int historyRecordsCount = readEEPROM(0);
+ 
   Serial.println("history count:");
-  Serial.println(historyRecordsCount);
-  for(int i = 0; i < historyRecordsCount; i++){
+  Serial.println(recordCounter);
+  for(int i = 0; i < recordCounter; i++){
     eepromPointer = 1 + (i * 5);
     month = readEEPROM(eepromPointer);
     monthday = readEEPROM(eepromPointer + 1);
