@@ -148,11 +148,14 @@ void printTime() {
     Serial.print("20");
     Serial.print(year);
     Serial.print("-");
-    Serial.print(month);
+    sprintf(buffer, "%02d", month);
+    Serial.print(buffer);
     Serial.print("-");
-    Serial.print(monthday);
+    sprintf(buffer, "%02d", monthday);
+    Serial.print(buffer);
     Serial.print(" ");
-    Serial.print(hour);
+    sprintf(buffer, "%02d", hour);
+    Serial.print(buffer);
     Serial.print(":");
     sprintf(buffer, "%02d", minute);
     Serial.println(buffer);
