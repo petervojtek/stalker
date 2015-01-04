@@ -1,5 +1,5 @@
 #include <EEPROM.h>
-#include <lowpower.h>
+#include <avr/sleep.h>
 
 // set to true to debug and see history of door open/close logs
 // set to false in production mode
@@ -21,31 +21,26 @@ byte monthday = 0;
 byte month = 0;
 byte year = 14; // fixed, we do not expect to run more than one year from battery
 
-// door status
-#define HALL_SENSOR_ANALOG_READ_PIN 0 
-#define DOOR_OPEN 0
-#define DOOR_CLOSED 1
-#define HALL_SENSOR_DIGITAL_POWER_PIN 8 // we turn off the hall sensor between measurements to save battery
+byte lastHitSecond = 0; // this helps us to eliminate false alarms
+byte lastHitMinute = 0; 
 
-boolean doorStatusHasChanged = false;
-int previousDoorStatus = DOOR_CLOSED;
-int currentDoorStatus = DOOR_CLOSED;
+#define INTERRUPT_PIN 1 // corresponds to VIBRATION_SENSOR_PIN 3 (http://arduino.cc/en/Reference/attachInterrupt)
+#define DEBUG_LED_PIN 13 // just remove the LED in production :)
 
 void setup() {
-  pinMode(HALL_SENSOR_DIGITAL_POWER_PIN, OUTPUT); 
-  digitalWrite(HALL_SENSOR_DIGITAL_POWER_PIN, LOW);
-
   pinMode(RTC_DIGITAL_POWER_PIN, OUTPUT); 
+  pinMode(DEBUG_LED_PIN, OUTPUT); 
   digitalWrite(RTC_DIGITAL_POWER_PIN, LOW); 
 
   Wire.begin();
-  
+
   // load number of currently stored door records so that we can continue seamlessly
   loadRecordCounter(); 
-  
+
   if(WITH_SERIAL_OUTPUT){
     Serial.begin(9600);
     delay(1000);
+
     Serial.println("printing history");
     printHistory();
     delay(1000);
@@ -54,55 +49,60 @@ void setup() {
   else {
     delay(1000);
   }
-  
+
   // uncomment the next line to clear the eeprom
-  //resetRecordCounter();
+  //deleteHistory();
 }
 
+boolean isTrueHit = true;
 void loop() {
-  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF); // check door status every 2 seconds
-  doorStatusHasChanged = updateDoorStatus();
-  if(doorStatusHasChanged){
-    powerOnRTC();
-    
-    readTime();
-    printTime();
-    printCurrentDoorStatus();
+  powerOnRTC();
+
+  readTime();
+  printTime();
+  printCurrentDoorStatus();
+  
+  isTrueHit = abs(((minute * 60) +second) - ((lastHitMinute * 60) +lastHitSecond) ) > 10;
+  if(isTrueHit) {
     storeDoorStatusToEeprom();
-    
-    powerOffRTC();
   }
+  
+  lastHitSecond = second;
+  lastHitMinute = minute;
+  
+  powerOffRTC();
+  
+  digitalWrite(DEBUG_LED_PIN, HIGH);
+  if(isTrueHit) {
+  delay(1000);
+  } else {
+    delay(50);
+  }  
+  digitalWrite(DEBUG_LED_PIN, LOW);
+  
+  
+  set_sleep_mode (SLEEP_MODE_PWR_DOWN);  
+  sleep_enable();
+
+  noInterrupts ();
+  attachInterrupt (INTERRUPT_PIN, wake, HIGH);
+
+  interrupts();
+  sleep_cpu();
+}
+
+void wake ()
+{
+  // cancel sleep as a precaution
+  sleep_disable();
+  // must do this as the pin will probably stay low for a while
+  detachInterrupt (1);
 }
 
 void printCurrentDoorStatus(){
   if(WITH_SERIAL_OUTPUT){
-    if(currentDoorStatus == DOOR_OPEN){
-      Serial.println("door status changed to OPEN");
-    } 
-    else {
-      Serial.println("door status changed to CLOSED");
-    }
+    Serial.println("door status changed");
   }
-}
-
-long hallValue;
-
-boolean updateDoorStatus(){
-  previousDoorStatus = currentDoorStatus;
-
-  digitalWrite(HALL_SENSOR_DIGITAL_POWER_PIN, HIGH);
-  LowPower.powerDown(SLEEP_15Ms, ADC_OFF, BOD_OFF);  
-  long hallValue = analogRead(HALL_SENSOR_ANALOG_READ_PIN);
-  digitalWrite(HALL_SENSOR_DIGITAL_POWER_PIN, LOW);
-
-  if(hallValue > 100){
-    currentDoorStatus = DOOR_OPEN;
-  } 
-  else {
-    currentDoorStatus = DOOR_CLOSED;
-  }
-
-  return(previousDoorStatus != currentDoorStatus);
 }
 
 byte decToBcd(byte val) {
@@ -117,7 +117,7 @@ byte bcdToDec(byte val) {
 // you will need to call this function when you replace the CR2032 battery
 void setTime() {
   digitalWrite(RTC_DIGITAL_POWER_PIN, HIGH);
-  LowPower.powerDown(SLEEP_15Ms, ADC_OFF, BOD_OFF);  
+  delay(15);
 
   year = 14; // 00-99
   month = 10; // 1-12
@@ -187,7 +187,7 @@ void loadRecordCounter(){
   powerOffRTC();
 }
 
-void resetRecordCounter(){
+void deleteHistory(){
   powerOnRTC();
   writeEEPROM(0, 0);
   recordCounter = 0;
@@ -196,13 +196,12 @@ void resetRecordCounter(){
 
 // one door record occupies 5 bytes. this can be reduced to 3 bytes if needed, but since we have 32kb eeprom, we have well enough space
 void storeDoorStatusToEeprom(){
-  eepromPointer = 1 + (recordCounter * 5);
+  eepromPointer = 1 + (recordCounter * 4);
 
   writeEEPROM(eepromPointer, month); 
   writeEEPROM(eepromPointer + 1, monthday);
   writeEEPROM(eepromPointer + 2, hour);
   writeEEPROM(eepromPointer + 3, minute);
-  writeEEPROM(eepromPointer + 4, currentDoorStatus);
 
   recordCounter++;
   writeEEPROM(0, recordCounter);
@@ -220,19 +219,18 @@ void powerOffRTC(){
 
 void printHistory(){
   powerOnRTC();
- 
+
   Serial.println("history count:");
   Serial.println(recordCounter);
   for(int i = 0; i < recordCounter; i++){
-    eepromPointer = 1 + (i * 5);
+    eepromPointer = 1 + (i * 4);
     month = readEEPROM(eepromPointer);
     monthday = readEEPROM(eepromPointer + 1);
     hour = readEEPROM(eepromPointer + 2);
     minute = readEEPROM(eepromPointer + 3);
-    currentDoorStatus = readEEPROM(eepromPointer + 4);
     printTime();
     printCurrentDoorStatus();
-    
+
   }
   powerOffRTC();
 }
@@ -246,23 +244,25 @@ void writeEEPROM(unsigned int eeaddress, byte data )
   Wire.write((int)(eeaddress & 0xFF)); // LSB
   Wire.write(data);
   Wire.endTransmission();
- 
+
   delay(5);
 }
- 
+
 byte readEEPROM(unsigned int eeaddress ) 
 {
   byte rdata = 0xFF;
- 
+
   Wire.beginTransmission(EEPROM_AT24C32);
   Wire.write((int)(eeaddress >> 8));   // MSB
   Wire.write((int)(eeaddress & 0xFF)); // LSB
   Wire.endTransmission();
- 
+
   Wire.requestFrom(EEPROM_AT24C32,1);
- 
+
   if (Wire.available()) rdata = Wire.read();
- 
+
   return rdata;
 }
+
+
 
